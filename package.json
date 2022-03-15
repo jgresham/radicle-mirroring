@@ -1,0 +1,17 @@
+{
+  "name": "rad-mirrors",
+  "version": "1.0.0",
+  "description": "mirroring repos to radicle network",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsc && node built/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "graphql": "^16.3.0",
+    "graphql-request": "^4.1.0",
+    "typescript": "^4.6.2"
+  }
+}
