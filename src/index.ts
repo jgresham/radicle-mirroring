@@ -7,7 +7,10 @@ const mirror = async () => {
     {
       organization(login: "ethereum") {
         id
-        repositories(first: 1, orderBy: { field: PUSHED_AT, direction: DESC }) {
+        repositories(
+          first: 11
+          orderBy: { field: PUSHED_AT, direction: DESC }
+        ) {
           edges {
             node {
               id
@@ -36,9 +39,11 @@ const mirror = async () => {
   const data = await graphQLClient.request(query);
   console.log(JSON.stringify(data, undefined, 2));
 
-  const repo = data.organization.repositories.edges[0].node;
-  const node = data.organization.repositories.nodes[0];
-  mirrorRepo(repo, node);
+  for (let i = 0; i < data.organization.repositories.edges.length; i++) {
+    const repo = data.organization.repositories.edges[i].node;
+    const node = data.organization.repositories.nodes[i];
+    mirrorRepo(repo, node);
+  }
 };
 
 const mirrorRepo = (repo, node) => {
@@ -46,7 +51,7 @@ const mirrorRepo = (repo, node) => {
 
   // check if repo has already been pulled
   try {
-    const result = execSync(`cd ${repo.name}`);
+    const result = execSync(`cd ${repo.name} && git pull`);
     console.log("result of cd: ", result);
   } catch (error) {
     console.error("error in exec sync", error);
@@ -56,19 +61,24 @@ const mirrorRepo = (repo, node) => {
     console.log("result of cd: ", result);
   }
 
-  // run rad auth with args
+  // run rad init with args
   try {
-    const result = execSync(`rad init `, [
-      "--name",
-      repo.name,
-      "--description",
-      node.description,
-      "--branch",
-      node.defaultBranchRef.name,
-    ]);
+    const result = execSync(
+      `cd ${repo.name} && rad init --name ${repo.name} --description "${node.description}" --branch "${node.defaultBranchRef.name}"`
+    );
     console.log("result of rad init: ", result);
   } catch (error) {
     console.error("error in rad init", error);
+  }
+
+  // run rad push
+  try {
+    const result = execSync(
+      `cd ${repo.name} && rad push --seed maple.radicle.garden`
+    );
+    console.log("result of rad push: ", result);
+  } catch (error) {
+    console.error("error in rad push", error);
   }
 };
 
