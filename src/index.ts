@@ -8,7 +8,7 @@ const mirror = async () => {
       organization(login: "ethereum") {
         id
         repositories(
-          first: 11
+          first: 100
           orderBy: { field: PUSHED_AT, direction: DESC }
         ) {
           edges {
@@ -39,10 +39,16 @@ const mirror = async () => {
   const data = await graphQLClient.request(query);
   console.log(JSON.stringify(data, undefined, 2));
 
+  const excludeNames = ["solc-bin", "discv4-dns-lists"];
   for (let i = 0; i < data.organization.repositories.edges.length; i++) {
+    console.log("Mirroring repo #" + i + "...");
     const repo = data.organization.repositories.edges[i].node;
     const node = data.organization.repositories.nodes[i];
-    mirrorRepo(repo, node);
+    if (excludeNames.includes(repo.name)) {
+      console.log("Skipping excluded repo " + repo.name);
+    } else {
+      mirrorRepo(repo, node);
+    }
   }
 };
 
@@ -51,6 +57,7 @@ const mirrorRepo = (repo, node) => {
 
   // check if repo has already been pulled
   try {
+    console.log("Pulling any new code...");
     const result = execSync(`cd ${repo.name} && git pull`);
     console.log("result of cd: ", result);
   } catch (error) {
@@ -63,6 +70,7 @@ const mirrorRepo = (repo, node) => {
 
   // run rad init with args
   try {
+    console.log("Initializing the Radicle project... ");
     const result = execSync(
       `cd ${repo.name} && rad init --name ${repo.name} --description "${node.description}" --branch "${node.defaultBranchRef.name}"`
     );
@@ -73,6 +81,7 @@ const mirrorRepo = (repo, node) => {
 
   // run rad push
   try {
+    console.log("Pushing the Radicle project to a radicle seed... ");
     const result = execSync(
       `cd ${repo.name} && rad push --seed maple.radicle.garden`
     );
@@ -83,6 +92,7 @@ const mirrorRepo = (repo, node) => {
 };
 
 const cloneRepo = (repo) => {
+  console.log(`Cloning repo ${repo.name}...`);
   try {
     const sshCloneUrl = `git@github.com:ethereum/${repo.name}.git`;
     const result = execSync(`git clone ${sshCloneUrl}`);
@@ -90,6 +100,7 @@ const cloneRepo = (repo) => {
   } catch (error) {
     console.error("error:", error);
   }
+  console.log(`Finished cloning repo ${repo.name}`);
 };
 
 mirror().catch((error) => console.error(error));
